@@ -10,7 +10,63 @@
          online at your node.js address under /socket.io/socket.io.js 
          You can disable that on the server if desired
     -->
+    <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script type="text/babel">
+        let user;
+        let socket;
+        const message = document.querySelector("#message");
+        const chat = document.querySelector("#chat");
+        chat.innerHTML = "";
+        document.querySelector("#disconnect").style.display = "none";
+
+        const connectSocket = (e) => {
+            socket = io.connect();
+            user = document.querySelector("#username").value;
+            socket.on('connect', () => {
+                if(!user) {
+                    user = 'unknown';   
+                }
+                socket.emit('join', { name: user });
+            });
+            socket.on('msg', (data) => {
+                chat.innerHTML += data.name + ": " + data.msg + '\n';
+            });
+            document.querySelector('#connect').style.display = "none";
+            document.querySelector('#disconnect').style.display = "inline-block";
+        };
+        const sendMsg = (e) => {
+            let msgSent = {
+                name: user,
+                msg: message.value,
+            };
+            
+            socket.emit('msgToServer', msgSent);
+            message.value = "";
+        };
+        const disconnectSocket = (e) => {
+            const discSent = {
+                name: "Server",
+                msg: user + " has left the room.",
+            };
+            socket.emit('dcMsg', discSent);
+            socket.emit("disconnect");
+            chat.innerHTML += 'Server: You have left the room.' + '\n';
+            socket.disconnect();
+            
+            document.querySelector('#disconnect').style.display = "none";
+            document.querySelector('#connect').style.display = "inline-block";
+        };
+        const init = () => {
+            const connect = document.querySelector("#connect");
+            const send = document.querySelector("#send");
+            const disconnect = document.querySelector("#disconnect");
+            connect.addEventListener('click', connectSocket);
+            send.addEventListener('click', sendMsg);    
+            disconnect.addEventListener('click', disconnectSocket);    
+        };
+        window.onload = init;
+    </script>
 	<style>
 		textarea {
 			display: block;
@@ -22,11 +78,12 @@
 	<label for="user">Username:</label>
 	<input id="username" name="user" type="text"/>
 	<input id="connect" type='button' value='connect'/>
+    <input id="disconnect" type='button' value='disconnect'/>
 	<br/>
 	<label for="message">Message:</label>
 	<input id="message" name="message" type="text"/>
 	<input id="send" type="button" value="send" />
 	
-	<textarea id="chat" rows="20" cols="40" readonly> </textarea>
+	<textarea id="chat" rows="20" cols="60" readonly> </textarea>
 </body>
 </html>
